@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Signal — Unified Customer View</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#10141A;
+    --panel:#181E27;
+    --panel-2:#1E2530;
+    --line:#2A323F;
+    --text:#E7EAEE;
+    --sub:#8B93A3;
+    --amber:#E8A33D;
+    --risk:#D8574B;
+    --opp:#4FB0A5;
+    --crm:#6C8EEF;
+    --support:#D8574B;
+    --slack:#B57EE5;
+    --email:#4FB0A5;
+    --usage:#E8A33D;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased;
+  }
+  .app{ display:flex; min-height:100vh; }
+  .sidebar{
+    width:270px; background:var(--panel); border-right:1px solid var(--line);
+    padding:22px 16px; flex-shrink:0;
+  }
+  .brand{ display:flex; align-items:center; gap:10px; margin-bottom:22px; padding:0 6px;}
+  .brand-mark{ width:26px; height:26px; border-radius:7px; background:linear-gradient(135deg,var(--amber),#c47a1f); flex-shrink:0;}
+  .brand-name{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:16px; letter-spacing:.2px;}
+  .brand-sub{ font-size:10.5px; color:var(--sub); letter-spacing:.5px; text-transform:uppercase;}
+  .source-legend{ margin-bottom:22px; padding:14px 12px; background:var(--panel-2); border-radius:10px; border:1px solid var(--line);}
+  .source-legend h4{ margin:0 0 10px; font-size:10.5px; text-transform:uppercase; letter-spacing:.6px; color:var(--sub); font-weight:600;}
+  .source-item{ display:flex; align-items:center; gap:8px; font-size:12px; color:var(--sub); margin-bottom:7px;}
+  .dot{ width:8px; height:8px; border-radius:50%; flex-shrink:0;}
+  .account-list{ display:flex; flex-direction:column; gap:4px;}
+  .account-item{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    padding:11px 12px; border-radius:9px; cursor:pointer; border:1px solid transparent;
+    transition:background .12s ease;
+  }
+  .account-item:hover{ background:var(--panel-2); }
+  .account-item.active{ background:var(--panel-2); border-color:var(--line); }
+  .account-name{ font-size:13.5px; font-weight:500; }
+  .account-plan{ font-size:10.5px; color:var(--sub); }
+  .health-pill{ font-family:'IBM Plex Mono',monospace; font-size:10.5px; font-weight:500; padding:2px 7px; border-radius:20px; }
+  .health-good{ background:rgba(79,176,165,.15); color:var(--opp);}
+  .health-warn{ background:rgba(232,163,61,.15); color:var(--amber);}
+  .health-risk{ background:rgba(216,87,75,.15); color:var(--risk);}
+
+  .main{ flex:1; padding:32px 40px; max-width:1180px; }
+  .header-row{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;}
+  .cust-name{ font-family:'Space Grotesk',sans-serif; font-size:26px; font-weight:700; letter-spacing:-.2px;}
+  .cust-meta{ color:var(--sub); font-size:13px; margin-top:4px;}
+  .cust-meta span{ margin-right:16px; }
+  .score-block{ text-align:right; }
+  .score-num{ font-family:'IBM Plex Mono',monospace; font-size:34px; font-weight:500; line-height:1;}
+  .score-label{ font-size:10.5px; text-transform:uppercase; letter-spacing:.5px; color:var(--sub); margin-top:2px;}
+
+  .mode-row{ display:flex; align-items:center; gap:10px; margin:14px 0 4px; }
+  .mode-badge{
+    font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.4px; text-transform:uppercase;
+    padding:4px 9px; border-radius:20px; font-weight:500; display:inline-flex; align-items:center; gap:6px;
+  }
+  .mode-badge .pulse{ width:6px; height:6px; border-radius:50%; }
+  .mode-live{ background:rgba(79,176,165,.15); color:var(--opp); }
+  .mode-live .pulse{ background:var(--opp); }
+  .mode-sample{ background:rgba(139,147,163,.15); color:var(--sub); }
+  .mode-sample .pulse{ background:var(--sub); }
+  .mode-loading{ background:rgba(232,163,61,.15); color:var(--amber); }
+  .mode-loading .pulse{ background:var(--amber); animation:blink 1s infinite; }
+  @keyframes blink{ 50%{ opacity:.25; } }
+  .regen-btn{
+    font-family:'Inter',sans-serif; font-size:11.5px; font-weight:500; color:var(--sub);
+    background:transparent; border:1px solid var(--line); border-radius:20px; padding:4px 10px;
+    cursor:pointer; transition:border-color .12s ease, color .12s ease;
+  }
+  .regen-btn:hover{ border-color:var(--amber); color:var(--amber); }
+
+  .summary-card{
+    background:var(--panel); border:1px solid var(--line); border-radius:12px;
+    padding:18px 20px; margin:22px 0 24px; font-size:14px; line-height:1.55; color:#D5D9E0;
+  }
+  .summary-card .tag{ font-size:10.5px; text-transform:uppercase; letter-spacing:.6px; color:var(--amber); font-weight:600; display:block; margin-bottom:8px;}
+
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-bottom:26px;}
+  .signal-card{ background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px 18px;}
+  .signal-card h3{ margin:0 0 12px; font-size:12px; text-transform:uppercase; letter-spacing:.6px; font-weight:600;}
+  .signal-card.risk h3{ color:var(--risk);}
+  .signal-card.opp h3{ color:var(--opp);}
+  .signal-row{ display:flex; gap:8px; font-size:13px; padding:7px 0; border-top:1px solid var(--line);}
+  .signal-row:first-of-type{ border-top:none; }
+  .signal-row .src{ font-family:'IBM Plex Mono',monospace; font-size:9.5px; padding:2px 6px; border-radius:5px; height:fit-content; flex-shrink:0; text-transform:uppercase; letter-spacing:.3px;}
+
+  .nba-card{
+    background:linear-gradient(180deg, rgba(232,163,61,.09), rgba(232,163,61,.02));
+    border:1px solid rgba(232,163,61,.35); border-radius:12px; padding:18px 20px; margin-bottom:26px;
+  }
+  .nba-card .tag{ font-size:10.5px; text-transform:uppercase; letter-spacing:.6px; color:var(--amber); font-weight:600; display:block; margin-bottom:8px;}
+  .nba-main{ font-size:15px; font-weight:500; margin-bottom:4px;}
+  .nba-why{ font-size:13px; color:var(--sub); }
+
+  .timeline-section h3{ font-size:12px; text-transform:uppercase; letter-spacing:.6px; color:var(--sub); font-weight:600; margin-bottom:14px;}
+  .timeline{ position:relative; padding-left:18px; }
+  .timeline::before{ content:''; position:absolute; left:5px; top:4px; bottom:4px; width:1.5px; background:var(--line); }
+  .t-item{ position:relative; padding-bottom:16px; }
+  .t-item:last-child{ padding-bottom:0;}
+  .t-dot{ position:absolute; left:-18px; top:3px; width:11px; height:11px; border-radius:50%; border:2px solid var(--bg);}
+  .t-row{ display:flex; justify-content:space-between; gap:10px; }
+  .t-text{ font-size:13.5px; }
+  .t-date{ font-size:11px; color:var(--sub); font-family:'IBM Plex Mono',monospace; flex-shrink:0; white-space:nowrap;}
+  .t-source{ font-size:10px; color:var(--sub); text-transform:uppercase; letter-spacing:.4px; margin-top:2px;}
+
+  .badge-crm{background:var(--crm);} .badge-support{background:var(--support);}
+  .badge-slack{background:var(--slack);} .badge-email{background:var(--email);} .badge-usage{background:var(--usage);}
+  .src-crm{ background:rgba(108,142,239,.15); color:var(--crm);}
+  .src-support{ background:rgba(216,87,75,.15); color:var(--risk);}
+  .src-slack{ background:rgba(181,126,229,.15); color:var(--slack);}
+  .src-email{ background:rgba(79,176,165,.15); color:var(--opp);}
+  .src-usage{ background:rgba(232,163,61,.15); color:var(--amber);}
+
+  @media (max-width: 880px){
+    .app{ flex-direction:column; }
+    .sidebar{ width:100%; border-right:none; border-bottom:1px solid var(--line); }
+    .grid2{ grid-template-columns:1fr; }
+    .main{ padding:22px 18px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="sidebar">
+    <div class="brand">
+      <div class="brand-mark"></div>
+      <div>
+        <div class="brand-name">Signal</div>
+        <div class="brand-sub">Unified Account View</div>
+      </div>
+    </div>
+
+    <div class="source-legend">
+      <h4>Data Sources Merged</h4>
+      <div class="source-item"><span class="dot badge-crm"></span>CRM — Zoho</div>
+      <div class="source-item"><span class="dot badge-support"></span>Support Tickets</div>
+      <div class="source-item"><span class="dot badge-slack"></span>Internal Slack Notes</div>
+      <div class="source-item"><span class="dot badge-email"></span>Customer Emails</div>
+      <div class="source-item"><span class="dot badge-usage"></span>Product Usage</div>
+    </div>
+
+    <div class="account-list" id="accountList"></div>
+  </div>
+
+  <div class="main" id="main"></div>
+</div>
+
+<script>
+// ---------- DUMMY SOURCE DATA (simulating pulls from 5 systems) ----------
+const accounts = [
+  {
+    id: "northwind",
+    name: "Northwind Logistics",
+    crm: { plan: "Growth", mrr: 4200, seatsLicensed: 40, owner: "Priya S.", stage: "Customer", renewal: "2026-09-14" },
+    tickets: [
+      { id:"T-1042", subject:"Card decline on bulk vendor payment", severity:"High", status:"Open", created:"2026-07-08" },
+      { id:"T-1039", subject:"Approval workflow not routing to backup approver", severity:"Medium", status:"Open", created:"2026-07-02" },
+      { id:"T-0988", subject:"Export formatting question", severity:"Low", status:"Closed", created:"2026-06-11" }
+    ],
+    slack: [
+      { channel:"#cs-northwind", author:"Priya S.", date:"2026-07-09", note:"Ops lead mentioned in call they're evaluating a competitor after the payment failure last week. Wants a resolution + credit before renewal conversation." },
+      { channel:"#cs-northwind", author:"Arjun M.", date:"2026-06-20", note:"Finance controller very happy with the multi-entity reporting rollout in May." }
+    ],
+    emails: [
+      { date:"2026-07-09", subject:"Re: Failed vendor payment - urgent", sentiment:"Negative" },
+      { date:"2026-06-22", subject:"Thanks for the QBR", sentiment:"Positive" }
+    ],
+    usage: { seatsActive: 24, seatsLicensed: 40, loginTrend: "down", adoption: 48, lastLogin:"2026-07-11" }
+  },
+  {
+    id: "hexafield",
+    name: "Hexafield Manufacturing",
+    crm: { plan: "Scale", mrr: 9800, seatsLicensed: 120, owner: "Marco D.", stage: "Customer", renewal: "2026-08-02" },
+    tickets: [
+      { id:"T-1050", subject:"Requesting API access for internal dashboard", severity:"Low", status:"Open", created:"2026-07-10" }
+    ],
+    slack: [
+      { channel:"#cs-hexafield", author:"Marco D.", date:"2026-07-05", note:"CFO asked if we support a 4th subsidiary entity - they're expanding into Vietnam. Could be a nice expansion if we can support it by Q4." }
+    ],
+    emails: [
+      { date:"2026-07-06", subject:"Question on multi-entity support - Vietnam", sentiment:"Positive" },
+      { date:"2026-06-01", subject:"Renewal - happy to continue", sentiment:"Positive" }
+    ],
+    usage: { seatsActive: 108, seatsLicensed: 120, loginTrend: "up", adoption: 82, lastLogin:"2026-07-13" }
+  },
+  {
+    id: "clearpath",
+    name: "Clearpath Retail Co.",
+    crm: { plan: "Starter", mrr: 1400, seatsLicensed: 15, owner: "Priya S.", stage: "Customer", renewal: "2026-07-28" },
+    tickets: [
+      { id:"T-1031", subject:"How to set spend limits per team", severity:"Low", status:"Closed", created:"2026-06-25" },
+      { id:"T-1004", subject:"Login issues for new finance hire", severity:"Medium", status:"Closed", created:"2026-05-30" }
+    ],
+    slack: [
+      { channel:"#cs-clearpath", author:"Arjun M.", date:"2026-06-30", note:"Very quiet account. No QBR booked in 2 quarters. Owner hasn't responded to last 2 check-in emails." }
+    ],
+    emails: [
+      { date:"2026-06-15", subject:"Checking in - anything we can help with?", sentiment:"No response" },
+      { date:"2026-05-02", subject:"Checking in - anything we can help with?", sentiment:"No response" }
+    ],
+    usage: { seatsActive: 5, seatsLicensed: 15, loginTrend: "down", adoption: 22, lastLogin:"2026-06-29" }
+  },
+  {
+    id: "brightloop",
+    name: "Brightloop Media",
+    crm: { plan: "Growth", mrr: 3600, seatsLicensed: 35, owner: "Marco D.", stage: "Customer", renewal: "2026-11-20" },
+    tickets: [],
+    slack: [
+      { channel:"#cs-brightloop", author:"Marco D.", date:"2026-07-01", note:"Onboarded 8 new hires this month, all active within the first week. Team lead asked about our upcoming approvals API." }
+    ],
+    emails: [
+      { date:"2026-07-02", subject:"Loving the new mobile app", sentiment:"Positive" }
+    ],
+    usage: { seatsActive: 35, seatsLicensed: 35, loginTrend: "up", adoption: 91, lastLogin:"2026-07-13" }
+  },
+  {
+    id: "veridian",
+    name: "Veridian Health Group",
+    crm: { plan: "Scale", mrr: 11200, seatsLicensed: 150, owner: "Priya S.", stage: "Customer", renewal: "2026-07-31" },
+    tickets: [
+      { id:"T-1048", subject:"Repeated timeout on monthly close export", severity:"High", status:"Open", created:"2026-07-11" },
+      { id:"T-1045", subject:"Same export timeout - escalated", severity:"High", status:"Open", created:"2026-07-06" }
+    ],
+    slack: [
+      { channel:"#cs-veridian", author:"Priya S.", date:"2026-07-11", note:"Controller says this is the second month close blocked by the export bug. Renewal is in 3 weeks - she said directly she can't sign off if this isn't fixed." }
+    ],
+    emails: [
+      { date:"2026-07-11", subject:"Escalation: export bug blocking close, again", sentiment:"Negative" }
+    ],
+    usage: { seatsActive: 140, seatsLicensed: 150, loginTrend: "flat", adoption: 76, lastLogin:"2026-07-13" }
+  }
+];
+
+// ---------- SIGNAL ENGINE: rule-based logic over merged data ----------
+function daysUntil(dateStr){
+  const d = new Date(dateStr), now = new Date("2026-07-14");
+  return Math.round((d-now)/(1000*60*60*24));
+}
+function daysSince(dateStr){
+  return -daysUntil(dateStr);
+}
+
+function analyze(acc){
+  const risks = [], opps = [];
+  const openTickets = acc.tickets.filter(t=>t.status==="Open");
+  const highSevOpen = openTickets.filter(t=>t.severity==="High");
+  const renewalDays = daysUntil(acc.crm.renewal);
+  const seatUtil = acc.usage.seatsActive / acc.usage.seatsLicensed;
+  const lastLoginGap = daysSince(acc.usage.lastLogin);
+  const negativeEmails = acc.emails.filter(e=>e.sentiment==="Negative").length;
+  const noResponseEmails = acc.emails.filter(e=>e.sentiment==="No response").length;
+
+  // RISK RULES
+  if (highSevOpen.length && renewalDays <= 45) {
+    risks.push({ src:"support", text:`${highSevOpen.length} high-severity ticket(s) open, renewal in ${renewalDays} days` });
+  } else if (highSevOpen.length) {
+    risks.push({ src:"support", text:`${highSevOpen.length} high-severity ticket(s) currently open` });
+  }
+  if (negativeEmails > 0) {
+    risks.push({ src:"email", text:`Negative-sentiment email on record: "${acc.emails.find(e=>e.sentiment==='Negative').subject}"` });
+  }
+  if (seatUtil < 0.6) {
+    risks.push({ src:"usage", text:`Seat utilization at ${Math.round(seatUtil*100)}% (${acc.usage.seatsActive}/${acc.usage.seatsLicensed}) — under-adoption` });
+  }
+  if (acc.usage.loginTrend === "down") {
+    risks.push({ src:"usage", text:`Login activity trending down, last login ${lastLoginGap} day(s) ago` });
+  }
+  if (noResponseEmails >= 2) {
+    risks.push({ src:"email", text:`${noResponseEmails} consecutive check-in emails with no response — disengaged contact` });
+  }
+  const churnNote = acc.slack.find(s => /competitor|churn|cancel/i.test(s.note));
+  if (churnNote) {
+    risks.push({ src:"slack", text: churnNote.note });
+  }
+
+  // OPPORTUNITY RULES
+  if (seatUtil >= 0.85 && acc.usage.loginTrend !== "down") {
+    opps.push({ src:"usage", text:`Seat utilization at ${Math.round(seatUtil*100)}% — candidate for seat expansion` });
+  }
+  const expansionNote = acc.slack.find(s => /expand|expansion|new (entity|subsidiary)|new hires|API/i.test(s.note));
+  if (expansionNote) {
+    opps.push({ src:"slack", text: expansionNote.note });
+  }
+  const positiveEmail = acc.emails.find(e => e.sentiment === "Positive");
+  if (positiveEmail && opps.length) {
+    opps.push({ src:"email", text:`Positive recent contact: "${positiveEmail.subject}" — good moment to open expansion conversation` });
+  } else if (positiveEmail && risks.length === 0) {
+    opps.push({ src:"email", text:`Consistently positive sentiment across recent emails — healthy relationship, low-risk upsell candidate` });
+  }
+  if (acc.tickets.some(t => /API|access/i.test(t.subject))) {
+    opps.push({ src:"support", text:`Customer requested API access — signals deeper platform integration intent` });
+  }
+
+  // HEALTH SCORE (0-100, simple weighted heuristic)
+  let score = 70;
+  score -= highSevOpen.length * 15;
+  score -= negativeEmails * 10;
+  score -= noResponseEmails * 8;
+  score -= seatUtil < 0.6 ? 12 : 0;
+  score -= acc.usage.loginTrend === "down" ? 8 : 0;
+  score += seatUtil >= 0.85 ? 10 : 0;
+  score += acc.usage.loginTrend === "up" ? 6 : 0;
+  score = Math.max(5, Math.min(97, score));
+
+  // NEXT BEST ACTION (priority rules, first match wins)
+  let nba;
+  if (churnNote && highSevOpen.length && renewalDays <= 45) {
+    nba = { action:`Escalate ${acc.name}'s open high-severity ticket(s) to engineering today and have ${acc.crm.owner} book a save call before the ${renewalDays}-day renewal.`,
+            why:"Active churn signal + unresolved blocker + near-term renewal is the highest-risk combination in the portfolio." };
+  } else if (highSevOpen.length && renewalDays <= 45) {
+    nba = { action:`Get a resolution ETA on the open high-severity ticket(s) and have ${acc.crm.owner} proactively update the customer before they ask, ahead of the ${renewalDays}-day renewal.`,
+            why:"Unresolved high-severity issues sitting near a renewal date are the strongest predictor of churn risk in this account set." };
+  } else if (noResponseEmails >= 2) {
+    nba = { action:`Have ${acc.crm.owner} try a different contact channel (phone or a warm intro via another stakeholder) — email outreach has gone unanswered twice.`,
+            why:"Disengagement risk: no response across two check-ins with declining usage means the account may be quietly at risk." };
+  } else if (expansionNote && seatUtil >= 0.85) {
+    nba = { action:`Have ${acc.crm.owner} open an expansion conversation referencing the specific signal from Slack/CRM — seat utilization supports the case.`,
+            why:"High utilization plus an explicit expansion signal from the customer is a strong, low-friction upsell moment." };
+  } else if (opps.length && risks.length === 0) {
+    nba = { action:`Schedule a light-touch check-in with ${acc.crm.owner} to explore expansion — account is healthy with no open concerns.`,
+            why:"No active risk signals and positive sentiment make this a good time to deepen the relationship rather than wait for renewal." };
+  } else if (seatUtil < 0.6) {
+    nba = { action:`Have ${acc.crm.owner} run an adoption review with ${acc.name} to understand why ${Math.round((1-seatUtil)*100)}% of licensed seats are inactive.`,
+            why:"Low utilization now is next quarter's downgrade or churn risk if left unaddressed." };
+  } else {
+    nba = { action:`No urgent action — maintain standard cadence with ${acc.crm.owner}.`,
+            why:"No significant risk or opportunity signals detected across sources this cycle." };
+  }
+
+  const summary = buildSummary(acc, risks, opps, seatUtil, renewalDays);
+
+  return { risks, opps, score, nba, summary };
+}
+
+function buildSummary(acc, risks, opps, seatUtil, renewalDays){
+  let s = `${acc.name} is on the ${acc.crm.plan} plan ($${acc.crm.mrr.toLocaleString()}/mo, ${acc.usage.seatsActive}/${acc.usage.seatsLicensed} seats active), renewing in ${renewalDays} days under ${acc.crm.owner}. `;
+  if (risks.length && opps.length) s += `The account shows both risk signals (${risks.length}) and expansion potential (${opps.length}) — the risk needs addressing first before pursuing growth. `;
+  else if (risks.length) s += `${risks.length} risk signal(s) are active and should be addressed before renewal conversations continue. `;
+  else if (opps.length) s += `No active risk signals; ${opps.length} expansion signal(s) suggest this is a good account to grow. `;
+  else s += `No notable risk or opportunity signals this cycle — account is stable. `;
+  return s;
+}
+
+// ---------- RENDER ----------
+let currentId = accounts[0].id;
+
+function healthClass(score){
+  if (score >= 65) return "health-good";
+  if (score >= 40) return "health-warn";
+  return "health-risk";
+}
+
+function renderSidebar(){
+  const list = document.getElementById("accountList");
+  list.innerHTML = "";
+  accounts.forEach(acc => {
+    const { score } = analyze(acc);
+    const el = document.createElement("div");
+    el.className = "account-item" + (acc.id === currentId ? " active" : "");
+    el.onclick = () => { currentId = acc.id; render(); };
+    el.innerHTML = `
+      <div>
+        <div class="account-name">${acc.name}</div>
+        <div class="account-plan">${acc.crm.plan} · $${acc.crm.mrr.toLocaleString()}/mo</div>
+      </div>
+      <div class="health-pill ${healthClass(score)}">${score}</div>
+    `;
+    list.appendChild(el);
+  });
+}
+
+function sourceLabel(src){
+  return { crm:"CRM", support:"Support", slack:"Slack", email:"Email", usage:"Usage" }[src];
+}
+
+function buildTimeline(acc){
+  const events = [];
+  acc.tickets.forEach(t => events.push({ date:t.created, text:`Ticket ${t.id}: ${t.subject} (${t.severity}, ${t.status})`, src:"support" }));
+  acc.slack.forEach(s => events.push({ date:s.date, text:`${s.author} in ${s.channel}: "${s.note}"`, src:"slack" }));
+  acc.emails.forEach(e => events.push({ date:e.date, text:`Email: "${e.subject}" — ${e.sentiment}`, src:"email" }));
+  events.push({ date:acc.usage.lastLogin, text:`Last login recorded, ${acc.usage.seatsActive}/${acc.usage.seatsLicensed} seats active, adoption ${acc.usage.adoption}%`, src:"usage" });
+  return events.sort((a,b)=> new Date(b.date)-new Date(a.date));
+}
+
+// ---------- LIVE AI SYNTHESIS (with labeled fallback to the rule engine) ----------
+// This calls the Claude API directly from the browser so the summary/signals/NBA below
+// can be genuinely generated, not scripted. That call only authenticates automatically
+// inside the Claude.ai artifact environment. Outside it (e.g. this file opened as a plain
+// HTML page, or on a host with no Anthropic API access), the call fails and the tool falls
+// back to the deterministic rule engine below it in this file — labeled "Sample output" so
+// it's always clear which mode produced what's on screen. The tool never shows a broken
+// state; it shows a real result either way.
+async function tryLiveGeneration(acc){
+  const merged = {
+    company: acc.name,
+    crm: acc.crm,
+    support_tickets: acc.tickets,
+    slack_notes: acc.slack,
+    emails: acc.emails,
+    product_usage: acc.usage
+  };
+  const prompt = `You are a customer success analyst. Given this merged account record from five internal systems (CRM, support tickets, Slack notes, emails, product usage), return ONLY a JSON object, no markdown fences, no preamble, with this exact shape:
+{"score": <integer 0-100 account health>, "summary": "<2-3 sentence consolidated summary>", "risks":[{"src":"crm|support|slack|email|usage","text":"<short risk finding>"}], "opportunities":[{"src":"crm|support|slack|email|usage","text":"<short opportunity finding>"}], "nextBestAction":{"action":"<one concrete recommended action, name the owner>","why":"<one sentence justification>"}}
+If there are no risks or opportunities, return an empty array for that field, don't invent one.
+
+Account record:
+${JSON.stringify(merged, null, 2)}`;
+
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-6",
+      max_tokens: 1000,
+      messages: [{ role: "user", content: prompt }]
+    })
+  });
+  if (!response.ok) throw new Error("API call failed: " + response.status);
+  const data = await response.json();
+  const textBlock = data.content.find(b => b.type === "text");
+  if (!textBlock) throw new Error("No text in response");
+  const cleaned = textBlock.text.replace(/```json|```/g, "").trim();
+  const parsed = JSON.parse(cleaned);
+  if (!parsed || typeof parsed.score !== "number") throw new Error("Malformed AI response");
+  return parsed;
+}
+
+function setModeBadge(state){
+  const el = document.getElementById("modeBadge");
+  if (!el) return;
+  if (state === "loading"){
+    el.className = "mode-badge mode-loading";
+    el.innerHTML = `<span class="pulse"></span>Generating live AI view`;
+  } else if (state === "live"){
+    el.className = "mode-badge mode-live";
+    el.innerHTML = `<span class="pulse"></span>Live AI`;
+  } else {
+    el.className = "mode-badge mode-sample";
+    el.innerHTML = `<span class="pulse"></span>Sample output (rule engine)`;
+  }
+}
+
+async function generateForCurrentAccount(){
+  const acc = accounts.find(a=>a.id===currentId);
+  setModeBadge("loading");
+  try{
+    const ai = await tryLiveGeneration(acc);
+    renderContent(acc, {
+      score: ai.score,
+      summary: ai.summary,
+      risks: ai.risks || [],
+      opps: ai.opportunities || [],
+      nba: ai.nextBestAction
+    });
+    setModeBadge("live");
+  } catch(err){
+    // Fall back to the deterministic rule engine — still a complete, real result.
+    renderContent(acc, analyze(acc));
+    setModeBadge("sample");
+  }
+}
+
+function render(){
+  renderSidebar();
+  const acc = accounts.find(a=>a.id===currentId);
+  renderContent(acc, analyze(acc));
+  setModeBadge("sample");
+  // Attempt a live AI generation in the background; swaps in automatically if it succeeds.
+  generateForCurrentAccount();
+}
+
+function renderContent(acc, { risks, opps, score, nba, summary }){
+  const main = document.getElementById("main");
+
+  const riskRows = risks.length ? risks.map(r=>`
+    <div class="signal-row"><span class="src src-${r.src}">${sourceLabel(r.src)}</span><span>${r.text}</span></div>
+  `).join("") : `<div class="signal-row" style="color:var(--sub)">No risk signals detected.</div>`;
+
+  const oppRows = opps.length ? opps.map(o=>`
+    <div class="signal-row"><span class="src src-${o.src}">${sourceLabel(o.src)}</span><span>${o.text}</span></div>
+  `).join("") : `<div class="signal-row" style="color:var(--sub)">No opportunity signals detected.</div>`;
+
+  const timeline = buildTimeline(acc).map(e => `
+    <div class="t-item">
+      <div class="t-dot badge-${e.src}"></div>
+      <div class="t-row"><div class="t-text">${e.text}</div><div class="t-date">${e.date}</div></div>
+      <div class="t-source">${sourceLabel(e.src)}</div>
+    </div>
+  `).join("");
+
+  main.innerHTML = `
+    <div class="header-row">
+      <div>
+        <div class="cust-name">${acc.name}</div>
+        <div class="cust-meta">
+          <span>Owner: ${acc.crm.owner}</span>
+          <span>Plan: ${acc.crm.plan}</span>
+          <span>MRR: $${acc.crm.mrr.toLocaleString()}</span>
+          <span>Renewal: ${acc.crm.renewal}</span>
+        </div>
+      </div>
+      <div class="score-block">
+        <div class="score-num" style="color:${score>=65?'var(--opp)':score>=40?'var(--amber)':'var(--risk)'}">${score}</div>
+        <div class="score-label">Health Score</div>
+      </div>
+    </div>
+
+    <div class="mode-row">
+      <span class="mode-badge mode-sample" id="modeBadge"><span class="pulse"></span>Sample output (rule engine)</span>
+      <button class="regen-btn" onclick="generateForCurrentAccount()">↻ Regenerate with live AI</button>
+    </div>
+
+    <div class="summary-card">
+      <span class="tag">Consolidated Summary</span>
+      ${summary}
+    </div>
+
+    <div class="nba-card">
+      <span class="tag">Recommended Next Best Action</span>
+      <div class="nba-main">${nba.action}</div>
+      <div class="nba-why">${nba.why}</div>
+    </div>
+
+    <div class="grid2">
+      <div class="signal-card risk">
+        <h3>Risk Signals</h3>
+        ${riskRows}
+      </div>
+      <div class="signal-card opp">
+        <h3>Opportunity Signals</h3>
+        ${oppRows}
+      </div>
+    </div>
+
+    <div class="timeline-section">
+      <h3>Merged Activity Timeline (all sources)</h3>
+      <div class="timeline">${timeline}</div>
+    </div>
+  `;
+}
+
+render();
+</script>
+</body>
+</html>
